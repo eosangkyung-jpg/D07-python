@@ -33,6 +33,35 @@ def fmt_time(t):
     return f"{t.month}월 {t.day}일 ({weekday}) {ampm} {hour}:{t.minute:02d}"
 
 
+def ampm_time(t):
+    """datetime → '오후 1:05:32'"""
+    ampm = "오전" if t.hour < 12 else "오후"
+    hour = t.hour % 12 or 12
+    return f"{ampm} {hour}:{t.minute:02d}:{t.second:02d}"
+
+
+def date_kr(t):
+    """datetime → '10월 22일 (목)'"""
+    return f"{t.month}월 {t.day}일 ({'월화수목금토일'[t.weekday()]})"
+
+
+# run_every=1 → 이 함수 '부분만' 1초마다 다시 실행해요.
+# 파일 전체가 아니라 시계만 다시 그려서, 날씨 API는 다시 부르지 않아요.
+@st.fragment(run_every=1)
+def clocks(ny_tz):
+    """주인공은 뉴욕 시계(크게), 한국 시계는 그 아래 참고용(작게)."""
+    now = datetime.now(timezone.utc)
+    ny = now.astimezone(ny_tz)
+    kr = now.astimezone(timezone(timedelta(hours=9)))
+    st.markdown(
+        f'<div style="font-size:0.9rem;opacity:0.7">🗽 뉴욕 지금 · {date_kr(ny)}</div>'
+        f'<div style="font-size:2.6rem;font-weight:700;line-height:1.2">{ampm_time(ny)}</div>'
+        f'<div style="font-size:0.95rem;opacity:0.6;margin-top:6px">'
+        f"🇰🇷 한국 지금 · {date_kr(kr)} {ampm_time(kr)}</div>",
+        unsafe_allow_html=True,
+    )
+
+
 # Streamlit은 버튼을 누를 때마다 파일 전체를 처음부터 다시 실행해요.
 # 그때마다 API를 부르면 429(너무 많이 부름)가 나기 쉬워서, 10분 동안은 받아 둔 결과를 재사용해요.
 @st.cache_data(ttl=600)
@@ -67,12 +96,10 @@ def main():
         st.error("❌ .env에 OPENWEATHER_API_KEY가 없어요. .env.example을 보고 채워 주세요.")
         st.stop()  # 여기서 화면 그리기를 멈춰요 (터미널 버전의 return 역할)
 
-    if st.button("🔄 새로고침"):
-        get_weather.clear()  # 저장해 둔 결과를 지우고 새로 받아 와요
-
     data, error = get_weather(key)
     if error:
         st.error(f"❌ {error}")
+        st.button("🔄 다시 불러오기", on_click=get_weather.clear)
         st.stop()
 
     temp_c = data["main"]["temp"]                # data["main"]["temp"] = 지금 기온 (섭씨)
@@ -82,21 +109,25 @@ def main():
     ny_tz = timezone(timedelta(seconds=data["timezone"]))  # data["timezone"] = 뉴욕이 세계 표준시보다 몇 초 느린지 (서머타임 자동 반영)
     measured = datetime.fromtimestamp(data["dt"], ny_tz)   # data["dt"] = 날씨를 측정한 시각
 
-    # 시계 2개: 뉴욕 지금 시각, 한국 지금 시각
-    now = datetime.now(timezone.utc)
-    kst = timezone(timedelta(hours=9))
-    t1, t2 = st.columns(2)
-    t1.metric("🗽 뉴욕 지금", fmt_time(now.astimezone(ny_tz)))
-    t2.metric("🇰🇷 한국 지금", fmt_time(now.astimezone(kst)))
+    # ── 1. 시계 (1초마다 저절로 바뀜) ──
+    clocks(ny_tz)
+    st.write("")  # 시계와 날씨 상자 사이 여백
 
-    # 카드 4개를 가로로 나란히 놓아요
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("🌡️ 기온", f"{temp_c:.1f}°C", f"{c_to_f(temp_c):.1f}°F", delta_color="off")
-    col2.metric("🤗 체감 온도", f"{feels_c:.1f}°C", f"{c_to_f(feels_c):.1f}°F", delta_color="off")
-    col3.metric("💧 습도", f"{humidity}%")
-    col4.metric("☁️ 날씨", desc)
+    # ── 2. 날씨 상자: 테두리로 시계와 구분하고, 새로고침 버튼도 이 상자 안에 둬요 ──
+    with st.container(border=True):
+        head, btn = st.columns([3, 1], vertical_alignment="center")
+        head.subheader("☁️ 지금 날씨")
+        # on_click: 버튼을 누르면 화면을 다시 그리기 '전에' 저장해 둔 날씨를 지워요 → 새로 받아 옴
+        btn.button("🔄 새로고침", on_click=get_weather.clear, use_container_width=True)
 
-    st.caption(f"🕒 측정 시각(뉴욕): {fmt_time(measured)} · 출처: 날씨 OpenWeather")
+        # 카드 4개를 가로로 나란히 놓아요
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("🌡️ 기온", f"{temp_c:.1f}°C", f"{c_to_f(temp_c):.1f}°F", delta_color="off")
+        col2.metric("🤗 체감 온도", f"{feels_c:.1f}°C", f"{c_to_f(feels_c):.1f}°F", delta_color="off")
+        col3.metric("💧 습도", f"{humidity}%")
+        col4.metric("☁️ 날씨", desc)
+
+        st.caption(f"🕒 측정 시각(뉴욕): {fmt_time(measured)} · 출처: 날씨 OpenWeather")
 
 
 main()
