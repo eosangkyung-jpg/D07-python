@@ -1,0 +1,13 @@
+# 🔑 비밀 키 — 절대 GitHub에 올리면 안 돼요
+.env
+.env.*
+!.env.example
+# Streamlit 비밀 설정 파일 (st.secrets 를 쓰게 되면 여기에 키가 들어가요)
+.streamlit/secrets.toml
+
+# 🐍 파이썬이 실행하면서 자동으로 만드는 파일
+__pycache__/
+*.pyc
+
+# 💻 VS Code 개인 설정 (내 컴퓨터 경로가 들어 있어요)
+.vscode/

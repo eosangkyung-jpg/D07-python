@@ -1,0 +1,6 @@
+# lotto.py: 외부 패키지 없음 (random, tkinter, datetime 모두 파이썬 기본 포함)
+# weather.py: requests, python-dotenv
+# 설치: pip install -r requirements.txt
+requests
+python-dotenv
+streamlit
