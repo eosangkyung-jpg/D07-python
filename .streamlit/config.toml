@@ -1,0 +1,7 @@
+# 이 폴더의 Streamlit 화면 공통 색 (깔끔한 무채색 검정 베이스)
+[theme]
+base = "dark"
+primaryColor = "#F5F5F5"
+backgroundColor = "#0A0A0A"
+secondaryBackgroundColor = "#141414"
+textColor = "#F5F5F5"

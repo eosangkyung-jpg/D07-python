@@ -9,5 +9,8 @@
 __pycache__/
 *.pyc
 
+# 💱 환율 계산기가 만드는 날짜별 기록 (내 컴퓨터에서만 쓰는 데이터)
+rate_history.json
+
 # 💻 VS Code 개인 설정 (내 컴퓨터 경로가 들어 있어요)
 .vscode/
